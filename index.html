@@ -9,107 +9,104 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            color: #1f2937;
-        }
-        .container {
-            max-width: 1200px;
-            margin: auto;
-            padding: 2rem;
-        }
-        .view-section {
-            padding: 2rem;
-            border-radius: 1rem;
-            background-color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .turn-card {
-            background-color: #e0f2fe;
-            border-left: 5px solid #0ea5e9;
-        }
-        .upcoming-turn-card {
-            background-color: #f3f4f6;
-            border-left: 5px solid #d1d5db;
-        }
-        .btn-primary {
-            background-color: #0ea5e9;
-            color: white;
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            background-color: #0284c7;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .btn-danger {
-            background-color: #ef4444;
-            color: white;
-            transition: all 0.3s ease;
-        }
-        .btn-danger:hover {
-            background-color: #dc2626;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 1rem;
-            max-width: 400px;
-            animation: fadeIn 0.3s;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .hidden {
-            display: none;
-        }
-        .logo-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 2rem;
-        }
-        .logo-header img {
-            width: 80px;
-            height: auto;
-            margin-right: 1rem;
-        }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; color: #1f2937; }
+        .container { max-width: 1200px; margin: auto; padding: 2rem; }
+        .view-section { padding: 2rem; border-radius: 1rem; background-color: white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .turn-card { background-color: #e0f2fe; border-left: 5px solid #0ea5e9; }
+        .upcoming-turn-card { background-color: #f3f4f6; border-left: 5px solid #d1d5db; }
+        .btn-primary { background-color: #0ea5e9; color: white; transition: all 0.3s ease; }
+        .btn-primary:hover { background-color: #0284c7; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .btn-danger { background-color: #ef4444; color: white; transition: all 0.3s ease; }
+        .btn-danger:hover { background-color: #dc2626; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border-radius: 1rem; max-width: 400px; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .hidden { display: none; }
+        .logo-header { display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; }
+        .logo-header img { width: 80px; height: auto; margin-right: 1rem; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fadeInUp { animation: fadeInUp 0.5s ease-out forwards; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen flex-col">
+    <div class="absolute top-4 left-4">
+        <nav class="flex space-x-2">
+            <a href="#public" class="nav-link p-2 border border-gray-300 rounded-lg shadow-sm text-gray-700" data-view="public">Pantalla de Exhibición</a>
+            <a href="#client" class="nav-link p-2 border border-gray-300 rounded-lg shadow-sm text-gray-700" data-view="client">Solicitar Turno</a>
+            <a href="#admin" class="nav-link p-2 border border-gray-300 rounded-lg shadow-sm text-gray-700" data-view="admin">Panel de Administración</a>
+        </nav>
+    </div>
 
-    <!-- Aquí se mantiene todo el HTML original de las vistas: public, client, admin, modales, formularios, botones, etc. -->
+    <div id="public-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
+        <div class="w-full mb-8">
+            <img src="Banner.jpg" alt="Tiendita BIC Banner" class="w-full h-auto rounded-xl shadow-lg">
+        </div>
+        <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Turnos en la Tiendita</h1>
+        <div class="grid md:grid-cols-2 gap-8">
+            <div>
+                <h2 class="text-2xl font-semibold mb-4 text-center">Turnos Actuales</h2>
+                <div id="called-turns" class="space-y-4"><div class="p-6 text-center text-gray-500">No hay turnos en espera.</div></div>
+            </div>
+            <div>
+                <h2 class="text-2xl font-semibold mb-4 text-center">Próximos Turnos</h2>
+                <div id="pending-turns" class="space-y-4"><div class="p-6 text-center text-gray-500">La cola está vacía.</div></div>
+            </div>
+        </div>
+    </div>
 
+    <div id="client-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
+        <div class="logo-header"><img src="logo.jpg" alt="BIC Logo" class="h-auto"><h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1></div>
+        <h2 class="text-2xl font-semibold text-center mb-6">Solicitar un Nuevo Turno</h2>
+        <div class="text-center mb-6"><p class="text-lg text-gray-600">Tu turno actual es:</p><p id="current-turn-number" class="text-6xl font-extrabold text-blue-600 my-4">--</p></div>
+        <form id="request-form" class="space-y-4">
+            <div><label for="client-name" class="block text-sm font-medium text-gray-700">Tu Nombre:</label><input type="text" id="client-name" placeholder="Ej. Juan Pérez" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required></div>
+            <div><label for="employee-number" class="block text-sm font-medium text-gray-700">Número de Empleado:</label><input type="text" id="employee-number" placeholder="Ej. 12345" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required></div>
+            <button type="submit" class="w-full px-4 py-2 btn-primary rounded-full font-bold">Obtener Turno</button>
+        </form>
+        <div id="client-info" class="mt-6 text-center p-4 rounded-lg bg-yellow-100 text-yellow-700 hidden"><p>Por favor, espera a que llamen a tu turno. Te notificaremos aquí.</p></div>
+    </div>
+    
+    <div id="admin-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
+        <div class="logo-header"><img src="logo.jpg" alt="BIC Logo" class="h-auto"><h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1></div>
+        <h2 class="text-2xl font-semibold text-center mb-6">Panel de Administración</h2>
+        <div id="admin-login" class="flex flex-col items-center">
+            <h3 class="text-xl font-bold mb-4">Ingresar</h3>
+            <input type="password" id="admin-password" placeholder="Contraseña de administrador" class="rounded-md border-gray-300 shadow-sm p-2 text-center" />
+            <button id="admin-login-btn" class="mt-4 px-6 py-2 btn-primary rounded-full font-bold">Acceder</button>
+        </div>
+        <div id="admin-content" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="flex flex-col items-center p-6 border rounded-lg shadow-sm"><h3 class="text-xl font-bold text-center text-gray-700 mb-4">Llamar Siguiente Turno</h3><button id="call-next-btn" class="px-6 py-3 btn-primary rounded-full font-bold">Llamar Turno</button></div>
+                <div class="flex flex-col items-center p-6 border rounded-lg shadow-sm"><h3 class="text-xl font-bold text-center text-gray-700 mb-4">Cancelar Todos</h3><button id="cancel-all-btn" class="px-6 py-3 btn-danger rounded-full font-bold">Cancelar Todos los Turnos</button></div>
+                <div class="flex flex-col items-center p-6 border rounded-lg shadow-sm"><h3 class="text-xl font-bold text-center text-gray-700 mb-4">Descargar Lista</h3><button id="download-excel-btn" class="px-6 py-3 bg-green-500 text-white rounded-full font-bold hover:bg-green-600 transition-all">Descargar Excel</button></div>
+            </div>
+            <div class="mt-8">
+                <h3 class="text-2xl font-semibold mb-4 text-center">Cola de Turnos</h3>
+                <div id="turn-list" class="space-y-4"><p class="text-center text-gray-500">La cola está vacía.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content text-center">
+            <h3 id="modal-title" class="text-xl font-bold mb-4"></h3>
+            <p id="modal-message" class="mb-6"></p>
+            <button id="download-ticket-btn" class="px-6 py-2 btn-primary rounded-full font-bold hidden">Descargar Ticket</button>
+            <button onclick="closeModal()" class="px-6 py-2 btn-primary rounded-full font-bold mt-4">Cerrar</button>
+        </div>
+    </div>
+    
     <canvas id="ticketCanvas" class="hidden"></canvas>
 
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js';
-        import { getAnalytics } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js';
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js';
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        // Importa los servicios de Firestore que necesitarás
+        import { 
+            getFirestore, collection, doc, onSnapshot, query, orderBy, 
+            runTransaction, serverTimestamp, writeBatch, getDocs, where, limit
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+        // --- PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyDUwf0DHEN492RL5CHHRXiQ5mm96Gsztco",
             authDomain: "tiendita-bic-v2.firebaseapp.com",
@@ -119,40 +116,307 @@
             appId: "1:167484928309:web:eb6965fa45825b3b091c7c",
             measurementId: "G-W59ZDBFN97"
         };
+        // --------------------------------------------------------
 
+        // Inicializar Firebase y Firestore
         const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
         const db = getFirestore(app);
 
+        // Referencias a las colecciones de Firestore
         const turnsCollection = collection(db, 'turns');
-        const q = query(turnsCollection, orderBy('number'));
+        const counterDocRef = doc(db, 'counters', 'turnCounter');
 
-        onSnapshot(q, (snapshot) => {
-            const allTurns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            localStorage.setItem('allTurns', JSON.stringify(allTurns));
-            updateTurnDisplay();
-            updateClientStatus();
+        // ========= FIN DE LA CONFIGURACIÓN DE FIREBASE =========
+    
+        // DOM Elements (sin cambios)
+        const views = {
+            public: document.getElementById('public-view'),
+            client: document.getElementById('client-view'),
+            admin: document.getElementById('admin-view')
+        };
+        const navLinks = document.querySelectorAll('.nav-link');
+        const calledTurnsContainer = document.getElementById('called-turns');
+        const pendingTurnsContainer = document.getElementById('pending-turns');
+        const requestForm = document.getElementById('request-form');
+        const currentTurnNumberElement = document.getElementById('current-turn-number');
+        const clientNameInput = document.getElementById('client-name');
+        const employeeNumberInput = document.getElementById('employee-number');
+        const clientInfoDiv = document.getElementById('client-info');
+        const adminPasswordInput = document.getElementById('admin-password');
+        const adminLoginBtn = document.getElementById('admin-login-btn');
+        const adminContent = document.getElementById('admin-content');
+        const adminLogin = document.getElementById('admin-login');
+        const callNextBtn = document.getElementById('call-next-btn');
+        const cancelAllBtn = document.getElementById('cancel-all-btn');
+        const downloadExcelBtn = document.getElementById('download-excel-btn');
+        const turnListContainer = document.getElementById('turn-list');
+        const ADMIN_PASSWORD = "bic-admin";
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const downloadTicketBtn = document.getElementById('download-ticket-btn');
+        const ticketCanvas = document.getElementById('ticketCanvas');
+
+        // Variables de estado local
+        let currentClientDetails = null;
+        let lastGeneratedTurn = null; 
+        let allTurns = []; // Variable local para almacenar los turnos actuales
+
+        // --- Funciones de Utilidad y UI (la mayoría sin cambios) ---
+        function showModal(title, message, showDownloadButton) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modal.style.display = 'block';
+            downloadTicketBtn.classList.toggle('hidden', !showDownloadButton);
+        }
+
+        window.closeModal = () => { modal.style.display = 'none'; };
+
+        function showView(viewName) {
+            Object.values(views).forEach(view => view.classList.add('hidden'));
+            if (views[viewName]) {
+                views[viewName].classList.remove('hidden');
+                navLinks.forEach(link => {
+                    link.classList.toggle('bg-blue-100', link.dataset.view === viewName);
+                    link.classList.toggle('text-blue-700', link.dataset.view === viewName);
+                    link.classList.toggle('border-blue-500', link.dataset.view === viewName);
+                    link.classList.toggle('font-bold', link.dataset.view === viewName);
+                });
+            }
+        }
+
+        window.addEventListener('hashchange', () => {
+            const viewName = window.location.hash.substring(1) || 'public';
+            showView(viewName);
         });
 
-        async function addTurnToFirebase(turn) {
-            await addDoc(turnsCollection, turn);
+        function formatTurnNumber(num) {
+            return '#' + String(num).padStart(3, '0');
         }
 
-        async function updateTurnInFirebase(turnId, updateData) {
-            const turnRef = doc(db, 'turns', turnId);
-            await updateDoc(turnRef, updateData);
+        function generateTicketImage(turnNumber, clientName, dateCreated) {
+            const ctx = ticketCanvas.getContext('2d');
+            ticketCanvas.width = 600;
+            ticketCanvas.height = 400;
+            ctx.fillStyle = '#0ea5e9';
+            ctx.fillRect(0, 0, ticketCanvas.width, ticketCanvas.height);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.fillRect(0, 0, ticketCanvas.width, ticketCanvas.height);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 32px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Tiendita BIC', ticketCanvas.width / 2, 80);
+            ctx.font = 'bold 28px Inter';
+            ctx.fillText(`Cliente: ${clientName}`, ticketCanvas.width / 2, 160);
+            ctx.font = 'bold 80px Inter';
+            ctx.fillText(formatTurnNumber(turnNumber), ticketCanvas.width / 2, 260);
+            ctx.font = '24px Inter';
+            ctx.fillText(`Fecha: ${dateCreated}`, ticketCanvas.width / 2, 320);
+            const image = ticketCanvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `Turno_${formatTurnNumber(turnNumber)}.png`;
+            link.href = image;
+            link.click();
         }
 
-        async function deleteAllTurnsFromFirebase() {
-            const snapshot = await getDocs(turnsCollection);
-            snapshot.forEach(async docItem => {
-                await deleteDoc(doc(db, 'turns', docItem.id));
+        // --- Lógica de Renderizado de UI (actualizada para recibir datos) ---
+        function renderTurnCards(container, turns, type) {
+            container.innerHTML = turns.length === 0 
+                ? `<div class="p-6 text-center text-gray-500">${type === 'called' ? 'No hay turnos en espera.' : 'La cola está vacía.'}</div>`
+                : turns.map(turn => `
+                    <div class="p-6 rounded-lg shadow-sm ${type === 'called' ? 'turn-card' : 'upcoming-turn-card'} animate-fadeInUp">
+                        <div class="text-center">
+                            <p class="text-lg font-medium">${type === 'called' ? 'Turno Actual:' : 'Próximo:'}</p>
+                            <p class="text-5xl font-extrabold mt-1">${formatTurnNumber(turn.number)}</p>
+                        </div>
+                    </div>`).join('');
+        }
+        
+        function renderAdminTurnCards(container, turns) {
+            container.innerHTML = turns.length === 0
+                ? `<p class="text-center text-gray-500">La cola está vacía.</p>`
+                : turns.map(turn => `
+                    <div class="p-4 rounded-lg shadow-sm ${turn.status === 'called' ? 'bg-blue-100 border-l-4 border-blue-500' : 'bg-gray-100 border-l-4 border-gray-400'} animate-fadeInUp">
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-semibold">${formatTurnNumber(turn.number)}</span>
+                            <span class="text-sm text-gray-600">${turn.clientName} - ${turn.employeeNumber}</span>
+                        </div>
+                        <div class="text-sm text-gray-500 mt-1">
+                            Estado: <span class="font-bold">${turn.status === 'called' ? 'Llamado' : 'Pendiente'}</span>
+                        </div>
+                    </div>`).join('');
+        }
+
+        // --- Funciones Principales de Actualización ---
+        function updateAllViews(turns) {
+            // Public View
+            const calledTurns = turns.filter(t => t.status === 'called').sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds).slice(0, 5);
+            const pendingTurns = turns.filter(t => t.status === 'pending').sort((a, b) => a.number - b.number).slice(0, 5);
+            renderTurnCards(calledTurnsContainer, calledTurns, 'called');
+            renderTurnCards(pendingTurnsContainer, pendingTurns, 'pending');
+
+            // Admin View
+            renderAdminTurnCards(turnListContainer, turns.sort((a,b) => a.number - b.number));
+            
+            // Client View
+            if (currentClientDetails) {
+                const myTurn = turns.find(turn => turn.clientName === currentClientDetails.name && turn.employeeNumber === currentClientDetails.empNum);
+                if (myTurn) {
+                    currentTurnNumberElement.textContent = formatTurnNumber(myTurn.number);
+                    clientInfoDiv.classList.remove('hidden');
+                    if (myTurn.status === 'called' && myTurn.number === lastGeneratedTurn.number) {
+                        showModal('¡Es tu turno!', `El turno ${formatTurnNumber(myTurn.number)} ha sido llamado.`, false);
+                        currentClientDetails = null; // Reset after being called
+                    }
+                }
+            }
+        }
+
+        // ========= LÓGICA DE FIREBASE =========
+
+        // Escuchar cambios en la colección de turnos en tiempo real
+        const q = query(turnsCollection, orderBy("number", "desc"), limit(50)); // Obtener los últimos 50 turnos
+        onSnapshot(q, (querySnapshot) => {
+            allTurns = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            updateAllViews(allTurns);
+        });
+
+        // Request a new turn (usando una transacción de Firestore)
+        requestForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const clientName = clientNameInput.value.trim();
+            const employeeNumber = employeeNumberInput.value.trim();
+
+            if (!clientName || !employeeNumber) {
+                showModal('Error', 'Por favor, introduce tu nombre y número de empleado.', false);
+                return;
+            }
+
+            try {
+                const newTurnData = await runTransaction(db, async (transaction) => {
+                    const counterDoc = await transaction.get(counterDocRef);
+                    const lastTurnNumber = counterDoc.exists() ? counterDoc.data().lastNumber : 0;
+                    const newTurnNumber = lastTurnNumber + 1;
+
+                    const newTurn = {
+                        number: newTurnNumber,
+                        clientName: clientName,
+                        employeeNumber: employeeNumber,
+                        status: 'pending',
+                        timestamp: serverTimestamp()
+                    };
+
+                    transaction.set(doc(turnsCollection), newTurn);
+                    transaction.set(counterDocRef, { lastNumber: newTurnNumber }, { merge: true });
+                    
+                    return newTurn;
+                });
+                
+                currentClientDetails = { name: clientName, empNum: employeeNumber };
+                lastGeneratedTurn = newTurnData;
+                showModal('Turno Solicitado', `Tu número de turno es el ${formatTurnNumber(newTurnData.number)}.`, true);
+
+            } catch (error) {
+                console.error("Error al crear el turno: ", error);
+                showModal('Error', 'No se pudo crear el turno. Inténtalo de nuevo.', false);
+            }
+        });
+
+        // Call next turn
+        callNextBtn.addEventListener('click', async () => {
+            const nextTurnQuery = query(turnsCollection, where("status", "==", "pending"), orderBy("number"), limit(1));
+            const querySnapshot = await getDocs(nextTurnQuery);
+
+            if (!querySnapshot.empty) {
+                const nextTurnDoc = querySnapshot.docs[0];
+                await runTransaction(db, async (transaction) => {
+                    transaction.update(doc(db, 'turns', nextTurnDoc.id), { 
+                        status: 'called', 
+                        timestamp: serverTimestamp() 
+                    });
+                });
+                showModal('Turno Llamado', `El turno ${formatTurnNumber(nextTurnDoc.data().number)} ha sido llamado.`, false);
+            } else {
+                showModal('Sin Turnos Pendientes', 'No hay más turnos en la cola.', false);
+            }
+        });
+
+        // Cancel all turns
+        cancelAllBtn.addEventListener('click', async () => {
+            const batch = writeBatch(db);
+            const querySnapshot = await getDocs(turnsCollection);
+            
+            querySnapshot.forEach(doc => {
+                batch.delete(doc.ref);
             });
-        }
+            batch.set(counterDocRef, { lastNumber: 0 }); // Resetear el contador
 
-        // Aquí se mantiene toda la lógica original de: navegación, formularios, modales, renderizado de turnos, tickets y botones,
-        // reemplazando solamente las llamadas a localStorage por llamadas a Firebase donde corresponda.
+            await batch.commit();
+            showModal('Turnos Cancelados', 'Todos los turnos han sido cancelados y la cuenta ha sido reiniciada.', false);
+        });
 
+        // Download turns as Excel (CSV)
+        downloadExcelBtn.addEventListener('click', async () => {
+            const turnsSnapshot = await getDocs(query(turnsCollection, orderBy("number")));
+            const turnsToDownload = turnsSnapshot.docs.map(doc => doc.data());
+
+            if (turnsToDownload.length === 0) {
+                showModal('No hay datos para descargar', 'La lista de turnos está vacía.', false);
+                return;
+            }
+            
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += "Turno,Nombre,Numero de Empleado,Estado,Fecha de Creacion\n";
+            
+            turnsToDownload.forEach(turn => {
+                const date = turn.timestamp ? new Date(turn.timestamp.seconds * 1000).toLocaleString('es-MX') : 'N/A';
+                const row = [
+                    formatTurnNumber(turn.number),
+                    `"${turn.clientName}"`,
+                    `"${turn.employeeNumber}"`,
+                    `"${turn.status === 'called' ? 'Llamado' : 'Pendiente'}"`,
+                    `"${date}"`
+                ].join(',');
+                csvContent += row + "\n";
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "reporte_turnos.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+        
+        // --- Otros Event Listeners ---
+
+        downloadTicketBtn.addEventListener('click', () => {
+            if (lastGeneratedTurn) {
+                generateTicketImage(
+                    lastGeneratedTurn.number,
+                    lastGeneratedTurn.clientName,
+                    new Date().toLocaleString('es-MX') // Usa la fecha actual para el ticket
+                );
+                closeModal();
+            }
+        });
+
+        adminLoginBtn.addEventListener('click', () => {
+            if (adminPasswordInput.value === ADMIN_PASSWORD) {
+                adminLogin.classList.add('hidden');
+                adminContent.classList.remove('hidden');
+                showModal('Acceso Concedido', 'Has ingresado al panel de administración.', false);
+            } else {
+                showModal('Acceso Denegado', 'La contraseña es incorrecta.', false);
+            }
+        });
+
+        // Initialize the app on page load
+        window.onload = function() {
+            const initialView = window.location.hash.substring(1) || 'public';
+            showView(initialView);
+        };
     </script>
 </body>
 </html>
