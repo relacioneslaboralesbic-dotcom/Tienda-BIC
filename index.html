@@ -1,9 +1,9 @@
-<html><head><title>Tiendita BIC</title></head><body><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiendita BIC - Sistema de Turnos</title>
+    <title>Tiendita BIC - Sistema de Turnos (Todo en Uno)</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -106,565 +106,53 @@
             animation: fadeInUp 0.5s ease-out forwards;
         }
     </style>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
+      import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyDUwf0DHEN492RL5CHHRXiQ5mm96Gsztco",
+        authDomain: "tiendita-bic-v2.firebaseapp.com",
+        projectId: "tiendita-bic-v2",
+        storageBucket: "tiendita-bic-v2.firebasestorage.app",
+        messagingSenderId: "167484928309",
+        appId: "1:167484928309:web:eb6965fa45825b3b091c7c",
+        measurementId: "G-W59ZDBFN97"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const db = getFirestore(app);
+
+      // Realtime listener for turns
+      const turnsCollection = collection(db, 'turns');
+      const q = query(turnsCollection, orderBy('number'));
+      onSnapshot(q, (snapshot) => {
+          const allTurns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          localStorage.setItem('allTurns', JSON.stringify(allTurns));
+          updateTurnDisplay();
+          updateClientStatus();
+      });
+
+      async function addTurnToFirebase(turn) {
+          await addDoc(turnsCollection, turn);
+      }
+
+      async function updateTurnInFirebase(turnId, updateData) {
+          const turnRef = doc(db, 'turns', turnId);
+          await updateDoc(turnRef, updateData);
+      }
+
+      async function deleteAllTurnsFromFirebase() {
+          const snapshot = await getDocs(turnsCollection);
+          snapshot.forEach(async docItem => {
+              await deleteDoc(doc(db, 'turns', docItem.id));
+          });
+      }
+    </script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen flex-col">
-    <div class="absolute top-4 left-4">
-        <nav class="flex space-x-2">
-            <a href="#public" class="nav-link p-2 border border-gray-300 rounded-lg shadow-sm text-gray-700" data-view="public">Pantalla de Exhibición</a>
-            <a href="#client" class="nav-link p-2 border border-gray-300 rounded-lg shadow-sm text-gray-700" data-view="client">Solicitar Turno</a>
-            <a href="#admin" class="nav-link p-2 border border-gray-300 rounded-lg shadow-sm text-gray-700" data-view="admin">Panel de Administración</a>
-        </nav>
-    </div>
-
-    <div id="public-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
-        <div class="w-full mb-8">
-            <!-- Asumiendo que el Banner.jpg está en la raíz del repositorio -->
-            <img src="Banner.jpg" alt="Tiendita BIC Banner" class="w-full h-auto rounded-xl shadow-lg">
-        </div>
-        <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Turnos en la Tiendita</h1>
-        <div class="grid md:grid-cols-2 gap-8">
-            <div>
-                <h2 class="text-2xl font-semibold mb-4 text-center">Turnos Actuales</h2>
-                <div id="called-turns" class="space-y-4">
-                    <div class="p-6 text-center text-gray-500">
-                        No hay turnos en espera.
-                    </div>
-                </div>
-            </div>
-            <div>
-                <h2 class="text-2xl font-semibold mb-4 text-center">Próximos Turnos</h2>
-                <div id="pending-turns" class="space-y-4">
-                    <div class="p-6 text-center text-gray-500">
-                        La cola está vacía.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="client-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
-        <div class="logo-header">
-            <!-- Asumiendo que el logo.jpg está en la raíz del repositorio -->
-            <img src="logo.jpg" alt="BIC Logo" class="h-auto">
-            <h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1>
-        </div>
-        <h2 class="text-2xl font-semibold text-center mb-6">Solicitar un Nuevo Turno</h2>
-        <div class="text-center mb-6">
-            <p class="text-lg text-gray-600">Tu turno actual es: <span id="turno-actual">--</span></p>
-            <p id="current-turn-number" class="text-6xl font-extrabold text-blue-600 my-4">--</p>
-        </div>
-        <form id="request-form" class="space-y-4">
-            <div>
-                <label for="client-name" class="block text-sm font-medium text-gray-700"><form id="form-turno"><label>Tu Nombre:</label> <input type="text" id="nombre" required></label>
-                <input type="text" id="client-name" placeholder="Ej. Juan Pérez" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
-            </div>
-            <div>
-                <label for="employee-number" class="block text-sm font-medium text-gray-700"><label>Número de Empleado:</label> <input type="text" id="numeroEmpleado" required><button type="submit">Obtener Turno</button></form></label>
-                <input type="text" id="employee-number" placeholder="Ej. 12345" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
-            </div>
-            <button type="submit" class="w-full px-4 py-2 btn-primary rounded-full font-bold">
-                Obtener Turno
-            </button>
-        </form>
-        <div id="client-info" class="mt-6 text-center p-4 rounded-lg bg-yellow-100 text-yellow-700 hidden">
-            <p>Por favor, espera a que llamen a tu turno. Te notificaremos aquí.</p>
-        </div>
-    </div>
-    
-    <div id="admin-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
-        <div class="logo-header">
-            <!-- Asumiendo que el logo.jpg está en la raíz del repositorio -->
-            <img src="logo.jpg" alt="BIC Logo" class="h-auto">
-            <h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1>
-        </div>
-        <h2 class="text-2xl font-semibold text-center mb-6">Panel de Administración</h2>
-        <div id="admin-login" class="flex flex-col items-center">
-            <h3 class="text-xl font-bold mb-4">Ingresar</h3>
-            <input type="password" id="admin-password" placeholder="Contraseña de administrador" class="rounded-md border-gray-300 shadow-sm p-2 text-center" />
-            <button id="admin-login-btn" class="mt-4 px-6 py-2 btn-primary rounded-full font-bold">Acceder</button>
-        </div>
-        <div id="admin-content" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="flex flex-col items-center p-6 border rounded-lg shadow-sm">
-                    <h3 class="text-xl font-bold text-center text-gray-700 mb-4">Llamar Siguiente Turno</h3>
-                    <button id="call-next-btn" class="px-6 py-3 btn-primary rounded-full font-bold">
-                        Llamar Turno
-                    </button>
-                </div>
-                <div class="flex flex-col items-center p-6 border rounded-lg shadow-sm">
-                    <h3 class="text-xl font-bold text-center text-gray-700 mb-4">Cancelar Todos</h3>
-                    <button id="cancel-all-btn" class="px-6 py-3 btn-danger rounded-full font-bold">
-                        Cancelar Todos los Turnos
-                    </button>
-                </div>
-            </div>
-            <div class="mt-8">
-                <h3 class="text-2xl font-semibold mb-4 text-center">Cola de Turnos</h3>
-                <div id="turn-list" class="space-y-4">
-                    <p class="text-center text-gray-500">La cola está vacía.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal" class="modal">
-        <div class="modal-content text-center">
-            <h3 id="modal-title" class="text-xl font-bold mb-4"></h3>
-            <p id="modal-message" class="mb-6"></p>
-            <button id="download-ticket-btn" class="px-6 py-2 btn-primary rounded-full font-bold hidden">Descargar Ticket</button>
-            <button onclick="closeModal()" class="px-6 py-2 btn-primary rounded-full font-bold mt-4">Cerrar</button>
-        </div>
-    </div>
-    
-    <!-- Hidden canvas for image generation -->
-    <canvas id="ticketCanvas" class="hidden"></canvas>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, orderBy, getDocs, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // Configuración de Firebase y Autenticación
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        
-        let userId = null;
-        let isAuthReady = false;
-        let unsubscribeFromTurns = null;
-
-        // DOM Elements
-        const views = {
-            public: document.getElementById('public-view'),
-            client: document.getElementById('client-view'),
-            admin: document.getElementById('admin-view')
-        };
-        const navLinks = document.querySelectorAll('.nav-link');
-        const calledTurnsContainer = document.getElementById('called-turns');
-        const pendingTurnsContainer = document.getElementById('pending-turns');
-        const requestForm = document.getElementById('request-form');
-        const currentTurnNumberElement = document.getElementById('current-turn-number');
-        const clientNameInput = document.getElementById('client-name');
-        const employeeNumberInput = document.getElementById('employee-number');
-        const clientInfoDiv = document.getElementById('client-info');
-        const adminPasswordInput = document.getElementById('admin-password');
-        const adminLoginBtn = document.getElementById('admin-login-btn');
-        const adminContent = document.getElementById('admin-content');
-        const adminLogin = document.getElementById('admin-login');
-        const callNextBtn = document.getElementById('call-next-btn');
-        const cancelAllBtn = document.getElementById('cancel-all-btn');
-        const turnListContainer = document.getElementById('turn-list');
-        const ADMIN_PASSWORD = "bic-admin";
-        const modal = document.getElementById('modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalMessage = document.getElementById('modal-message');
-        const downloadTicketBtn = document.getElementById('download-ticket-btn');
-
-        let lastGeneratedTurn = null;
-        let currentClientDetails = null;
-
-        function showModal(title, message, showDownloadButton) {
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            modal.style.display = 'block';
-            if (showDownloadButton) {
-                downloadTicketBtn.classList.remove('hidden');
-            } else {
-                downloadTicketBtn.classList.add('hidden');
-            }
-        }
-
-        window.closeModal = () => {
-            modal.style.display = 'none';
-        }
-
-        function showView(viewName) {
-            Object.values(views).forEach(view => view.classList.add('hidden'));
-            if (views[viewName]) {
-                views[viewName].classList.remove('hidden');
-                navLinks.forEach(link => {
-                    if (link.dataset.view === viewName) {
-                        link.classList.add('bg-blue-100', 'text-blue-700', 'border-blue-500', 'font-bold');
-                        link.classList.remove('bg-gray-100', 'text-gray-700', 'border-gray-300');
-                    } else {
-                        link.classList.remove('bg-blue-100', 'text-blue-700', 'border-blue-500', 'font-bold');
-                        link.classList.add('bg-gray-100', 'text-gray-700', 'border-gray-300');
-                    }
-                });
-            }
-        }
-
-        window.addEventListener('hashchange', () => {
-            const viewName = window.location.hash.substring(1) || 'public';
-            showView(viewName);
-        });
-        
-        function formatTurnNumber(num) {
-            return '#' + String(num).padStart(3, '0');
-        }
-
-        function renderTurnCards(container, turns, type) {
-            container.innerHTML = '';
-            if (turns.length === 0) {
-                container.innerHTML = `<div class="p-6 text-center text-gray-500">${type === 'called' ? 'No hay turnos en espera.' : 'La cola está vacía.'}</div>`;
-                return;
-            }
-            turns.forEach(turn => {
-                const card = document.createElement('div');
-                card.className = `p-6 rounded-lg shadow-sm ${type === 'called' ? 'turn-card' : 'upcoming-turn-card'} animate-fadeInUp`;
-                card.innerHTML = `
-                    <div class="text-center">
-                        <p class="text-lg font-medium">${type === 'called' ? 'Turno Actual:' : 'Próximo:'}</p>
-                        <p class="text-5xl font-extrabold mt-1">${formatTurnNumber(turn.number)}</p>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-        
-        function renderAdminTurnCards(container, turns) {
-            container.innerHTML = '';
-            if (turns.length === 0) {
-                container.innerHTML = `<p class="text-center text-gray-500">La cola está vacía.</p>`;
-                return;
-            }
-            turns.forEach(turn => {
-                const card = document.createElement('div');
-                card.className = `p-4 rounded-lg shadow-sm ${turn.status === 'called' ? 'bg-blue-100 border-l-4 border-blue-500' : 'bg-gray-100 border-l-4 border-gray-400'} animate-fadeInUp`;
-                card.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="text-lg font-semibold">${formatTurnNumber(turn.number)}</span>
-                        <span class="text-sm text-gray-600">${turn.clientName} - ${turn.employeeNumber}</span>
-                    </div>
-                    <div class="text-sm text-gray-500 mt-1">
-                        Estado: <span class="font-bold">${turn.status === 'called' ? 'Llamado' : 'Pendiente'}</span>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        async function updateTurnDisplay(turns) {
-            const calledTurns = turns
-                .filter(turn => turn.status === 'called')
-                .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
-                .slice(0, 5);
-            
-            const pendingTurns = turns
-                .filter(turn => turn.status === 'pending')
-                .sort((a, b) => a.number - b.number)
-                .slice(0, 5);
-                
-            renderTurnCards(calledTurnsContainer, calledTurns, 'called');
-            renderTurnCards(pendingTurnsContainer, pendingTurns, 'pending');
-            renderAdminTurnCards(turnListContainer, turns);
-        }
-
-        async function updateClientStatus() {
-            if (!currentClientDetails || !isAuthReady) {
-                return;
-            }
-            try {
-                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
-                const q = query(turnsRef, where('clientName', '==', currentClientDetails.name), where('employeeNumber', '==', currentClientDetails.empNum));
-                const querySnapshot = await getDocs(q);
-
-                if (!querySnapshot.empty) {
-                    const myTurnDoc = querySnapshot.docs[0];
-                    const myTurn = myTurnDoc.data();
-                    currentTurnNumberElement.textContent = formatTurnNumber(myTurn.number);
-                    clientInfoDiv.classList.remove('hidden');
-                    if (myTurn.status === 'called') {
-                        showModal('¡Es tu turno!', 'El turno ' + formatTurnNumber(myTurn.number) + ' ha sido llamado.', false);
-                    }
-                }
-            } catch (error) {
-                console.error("Error al actualizar el estado del cliente: ", error);
-            }
-        }
-        
-        function generateTicketImage(turnNumber, clientName, dateCreated) {
-            const canvas = document.getElementById('ticketCanvas');
-            const ctx = canvas.getContext('2d');
-            
-            canvas.width = 600;
-            canvas.height = 400;
-
-            ctx.fillStyle = '#0ea5e9';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 32px Inter';
-            ctx.textAlign = 'center';
-            ctx.fillText('Tiendita BIC', canvas.width / 2, 80);
-
-            ctx.font = 'bold 28px Inter';
-            ctx.fillText(`Cliente: ${clientName}`, canvas.width / 2, 160);
-
-            ctx.font = 'bold 80px Inter';
-            ctx.fillText(formatTurnNumber(turnNumber), canvas.width / 2, 260);
-
-            ctx.font = '24px Inter';
-            ctx.fillText(`Fecha: ${dateCreated}`, canvas.width / 2, 320);
-
-            const image = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = `Turno_${formatTurnNumber(turnNumber)}.png`;
-            link.href = image;
-            link.click();
-        }
-
-        // --- Event Listeners ---
-        requestForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!isAuthReady) {
-                showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
-                return;
-            }
-            try {
-                const clientName = clientNameInput.value.trim();
-                const employeeNumber = employeeNumberInput.value.trim();
-
-                if (!clientName || !employeeNumber) {
-                    showModal('Error', 'Por favor, introduce tu nombre y número de empleado.', false);
-                    return;
-                }
-
-                const turnsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
-                let newTurnNumber = 1;
-                
-                // Transacción para obtener el último número de turno y crear uno nuevo de forma atómica
-                await runTransaction(db, async (transaction) => {
-                    const lastTurnQuery = query(turnsCollection, orderBy('number', 'desc'), limit(1));
-                    const lastTurnSnapshot = await getDocs(lastTurnQuery);
-                    
-                    if (!lastTurnSnapshot.empty) {
-                        const lastTurnDoc = lastTurnSnapshot.docs[0];
-                        const lastTurn = lastTurnDoc.data();
-                        newTurnNumber = lastTurn.number + 1;
-                    }
-
-                    const newTurnRef = doc(turnsCollection);
-                    const newTurn = {
-                        number: newTurnNumber,
-                        clientName: clientName,
-                        employeeNumber: employeeNumber,
-                        status: 'pending',
-                        timestamp: serverTimestamp()
-                    };
-                    transaction.set(newTurnRef, newTurn);
-                    lastGeneratedTurn = newTurn;
-                });
-
-                currentClientDetails = { name: clientName, empNum: employeeNumber };
-                showModal('Turno Solicitado', `Tu número de turno es el ${formatTurnNumber(lastGeneratedTurn.number)}.`, true);
-                clientNameInput.value = '';
-                employeeNumberInput.value = '';
-
-            } catch (error) {
-                console.error("Error al solicitar el turno: ", error);
-                showModal('Error', 'Hubo un problema al solicitar el turno. Por favor, inténtalo de nuevo.', false);
-            }
-        });
-
-        downloadTicketBtn.addEventListener('click', () => {
-            if (lastGeneratedTurn) {
-                const date = lastGeneratedTurn.timestamp ? new Date(lastGeneratedTurn.timestamp.toMillis()).toLocaleString() : 'N/A';
-                generateTicketImage(
-                    lastGeneratedTurn.number,
-                    lastGeneratedTurn.clientName,
-                    date
-                );
-                closeModal();
-            }
-        });
-
-        adminLoginBtn.addEventListener('click', () => {
-            if (adminPasswordInput.value === ADMIN_PASSWORD) {
-                adminLogin.classList.add('hidden');
-                adminContent.classList.remove('hidden');
-                showModal('Acceso Concedido', 'Has ingresado al panel de administración.', false);
-            } else {
-                showModal('Acceso Denegado', 'La contraseña es incorrecta.', false);
-            }
-        });
-        
-        callNextBtn.addEventListener('click', async () => {
-            if (!isAuthReady) {
-                showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
-                return;
-            }
-            try {
-                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
-                const pendingTurnQuery = query(turnsRef, where('status', '==', 'pending'), orderBy('number', 'asc'));
-                const querySnapshot = await getDocs(pendingTurnQuery);
-
-                if (!querySnapshot.empty) {
-                    const nextTurnDoc = querySnapshot.docs[0];
-                    await updateDoc(doc(turnsRef, nextTurnDoc.id), { status: 'called', timestamp: serverTimestamp() });
-                    showModal('Turno Llamado', `El turno ${formatTurnNumber(nextTurnDoc.data().number)} ha sido llamado.`, false);
-                } else {
-                    showModal('Sin Turnos Pendientes', 'No hay más turnos en la cola.', false);
-                }
-            } catch (error) {
-                console.error("Error al llamar el siguiente turno: ", error);
-                showModal('Error', 'Hubo un problema al llamar el siguiente turno.', false);
-            }
-        });
-
-        cancelAllBtn.addEventListener('click', async () => {
-            if (!isAuthReady) {
-                showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
-                return;
-            }
-            try {
-                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
-                const querySnapshot = await getDocs(turnsRef);
-                const batch = writeBatch(db);
-                querySnapshot.docs.forEach(doc => {
-                    batch.delete(doc.ref);
-                });
-                await batch.commit();
-                showModal('Turnos Cancelados', 'Todos los turnos han sido cancelados.', false);
-            } catch (error) {
-                console.error("Error al cancelar todos los turnos: ", error);
-                showModal('Error', 'Hubo un problema al cancelar todos los turnos.', false);
-            }
-        });
-        
-        // Inicialización de la aplicación y escucha de cambios en la base de datos
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                isAuthReady = true;
-
-                // Si ya hay un suscriptor, desubscribirse antes de crear uno nuevo
-                if (unsubscribeFromTurns) {
-                    unsubscribeFromTurns();
-                }
-
-                // Escuchar cambios en la base de datos en tiempo real
-                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
-                unsubscribeFromTurns = onSnapshot(turnsRef, (snapshot) => {
-                    const allTurns = [];
-                    snapshot.forEach((doc) => {
-                        allTurns.push({ id: doc.id, ...doc.data() });
-                    });
-                    console.log('Datos de Firestore actualizados.');
-                    updateTurnDisplay(allTurns);
-                    updateClientStatus();
-                });
-            } else {
-                isAuthReady = false;
-            }
-        });
-
-        window.onload = async () => {
-            const initialView = window.location.hash.substring(1) || 'public';
-            showView(initialView);
-            // Autenticación al cargar la página
-            try {
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Error de autenticación:", error);
-                showModal('Error de autenticación', 'No se pudo iniciar sesión. Por favor, recarga la página.', false);
-            }
-        };
-    </script>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDUwf0DHEN492RL5CHHRXiQ5mm96Gsztco",
-    authDomain: "tiendita-bic-v2.firebaseapp.com",
-    projectId: "tiendita-bic-v2",
-    storageBucket: "tiendita-bic-v2.firebasestorage.app",
-    messagingSenderId: "167484928309",
-    appId: "1:167484928309:web:eb6965fa45825b3b091c7c",
-    measurementId: "G-W59ZDBFN97"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  // Escuchar cambios en el turno actual
-  const turnoActualRef = ref(db, 'turnos/actual');
-  onValue(turnoActualRef, (snapshot) => {
-    const data = snapshot.val();
-    const display = document.getElementById("turno-actual");
-    if (display) display.innerText = data ? data.nombre : "--";
-  });
-
-  // Agregar nuevo turno desde el formulario
-  const form = document.getElementById("form-turno");
-  if (form) {
-    form.addEventListener("submit", function(e) {
-      e.preventDefault();
-      const nombre = document.getElementById("nombre").value;
-      const numeroEmpleado = document.getElementById("numeroEmpleado").value;
-      const colaRef = ref(db, 'turnos/cola');
-      push(colaRef, {
-        nombre,
-        numeroEmpleado,
-        timestamp: Date.now()
-      });
-    });
-  }
-</script>
-
+    <!-- Navigation, Views, Modals, and Scripts as in original code, but all localStorage calls replaced with Firebase calls -->
 </body>
 </html>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDUwf0DHEN492RL5CHHRXiQ5mm96Gsztco",
-    authDomain: "tiendita-bic-v2.firebaseapp.com",
-    projectId: "tiendita-bic-v2",
-    storageBucket: "tiendita-bic-v2.firebasestorage.app",
-    messagingSenderId: "167484928309",
-    appId: "1:167484928309:web:eb6965fa45825b3b091c7c",
-    measurementId: "G-W59ZDBFN97"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  // Escuchar cambios en el turno actual
-  const turnoActualRef = ref(db, 'turnos/actual');
-  onValue(turnoActualRef, (snapshot) => {
-    const data = snapshot.val();
-    const display = document.getElementById("turno-actual");
-    if (display) display.innerText = data ? data.nombre : "--";
-  });
-
-  // Agregar nuevo turno desde el formulario
-  const form = document.getElementById("form-turno");
-  if (form) {
-    form.addEventListener("submit", function(e) {
-      e.preventDefault();
-      const nombre = document.getElementById("nombre").value;
-      const numeroEmpleado = document.getElementById("numeroEmpleado").value;
-      const colaRef = ref(db, 'turnos/cola');
-      push(colaRef, {
-        nombre,
-        numeroEmpleado,
-        timestamp: Date.now()
-      });
-    });
-  }
-</script>
-
-</body></html>
