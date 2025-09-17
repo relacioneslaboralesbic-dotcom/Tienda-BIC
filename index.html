@@ -230,10 +230,22 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, orderBy, getDocs, serverTimestamp, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
+        // --- INSTRUCCIONES: PEGA AQUÍ TU OBJETO firebaseConfig DE TU PROYECTO DE FIREBASE ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyDgpy7NNloTQa7vjIKtmJWaI8uOMGUPWFA",
+          authDomain: "turnos-en-tiendita-bic.firebaseapp.com",
+          projectId: "turnos-en-tiendita-bic",
+          storageBucket: "turnos-en-tiendita-bic.firebasestorage.app",
+          messagingSenderId: "1035735031325",
+          appId: "1:1035735031325:web:47ea3b7459e07c68a830f4",
+          measurementId: "G-8KXDFCXMG8"
+        };
+        // --- FIN DE LA SECCIÓN DE INSTRUCCIONES ---
+
         // Configuración de Firebase y Autenticación
-        // Variables que son provistas por el entorno, pero se añaden valores de respaldo.
-        const appId = typeof __app_id !== 'undefined' ? __app_id : null;
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        // NOTA: No cambies las variables de __app_id y __initial_auth_token. Son específicas de este entorno.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig?.appId || null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
         let app, db, auth;
         let userId = null;
@@ -595,8 +607,9 @@
             // Autenticación al cargar la página
             if (auth) {
                 try {
-                    if (typeof __initial_auth_token !== 'undefined') {
-                        await signInWithCustomToken(auth, __initial_auth_token);
+                    // El token de autenticación solo se provee en este entorno, no en GitHub
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
                     } else {
                         await signInAnonymously(auth);
                     }
@@ -609,3 +622,6 @@
     </script>
 </body>
 </html>
+
+</html>
+
