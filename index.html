@@ -390,7 +390,8 @@
                 return;
             }
             try {
-                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                // Modificación: usar la colección 'Turnos'
+                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'Turnos');
                 const q = query(turnsRef, where('clientName', '==', currentClientDetails.name), where('employeeNumber', '==', currentClientDetails.empNum));
                 const querySnapshot = await getDocs(q);
 
@@ -450,15 +451,8 @@
                     return;
                 }
                 try {
-                    const clientName = clientNameInput.value.trim();
-                    const employeeNumber = employeeNumberInput.value.trim();
-
-                    if (!clientName || !employeeNumber) {
-                        showModal('Error', 'Por favor, introduce tu nombre y número de empleado.', false);
-                        return;
-                    }
-
-                    const turnsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                    // Modificación: usar la colección 'Turnos'
+                    const turnsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'Turnos');
                     let newTurnNumber = 1;
                     
                     // Transacción para obtener el último número de turno y crear uno nuevo de forma atómica
@@ -475,8 +469,8 @@
                         const newTurnRef = doc(turnsCollection);
                         const newTurn = {
                             number: newTurnNumber,
-                            clientName: clientName,
-                            employeeNumber: employeeNumber,
+                            clientName: clientNameInput.value.trim(),
+                            employeeNumber: employeeNumberInput.value.trim(),
                             status: 'pending',
                             timestamp: serverTimestamp()
                         };
@@ -484,7 +478,7 @@
                         lastGeneratedTurn = newTurn;
                     });
 
-                    currentClientDetails = { name: clientName, empNum: employeeNumber };
+                    currentClientDetails = { name: clientNameInput.value.trim(), empNum: employeeNumberInput.value.trim() };
                     showModal('Turno Solicitado', `Tu número de turno es el ${formatTurnNumber(lastGeneratedTurn.number)}.`, true);
                     clientNameInput.value = '';
                     employeeNumberInput.value = '';
@@ -529,7 +523,8 @@
                     return;
                 }
                 try {
-                    const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                    // Modificación: usar la colección 'Turnos'
+                    const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'Turnos');
                     const pendingTurnQuery = query(turnsRef, where('status', '==', 'pending'), orderBy('number', 'asc'));
                     const querySnapshot = await getDocs(pendingTurnQuery);
 
@@ -554,7 +549,8 @@
                     return;
                 }
                 try {
-                    const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                    // Modificación: usar la colección 'Turnos'
+                    const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'Turnos');
                     const querySnapshot = await getDocs(turnsRef);
                     const batch = writeBatch(db);
                     querySnapshot.docs.forEach(doc => {
@@ -582,7 +578,8 @@
                     }
 
                     // Escuchar cambios en la base de datos en tiempo real
-                    const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                    // Modificación: usar la colección 'Turnos'
+                    const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'Turnos');
                     unsubscribeFromTurns = onSnapshot(turnsRef, (snapshot) => {
                         const allTurns = [];
                         snapshot.forEach((doc) => {
