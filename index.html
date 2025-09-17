@@ -37,10 +37,10 @@
         </nav>
     </div>
 
-    <!-- Vistas (sin cambios en el HTML) -->
+    <!-- Vistas -->
     <div id="public-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
         <div class="w-full mb-8">
-            <img src="https://placehold.co/1200x300/0ea5e9/ffffff?text=Tiendita+BIC" alt="Tiendita BIC Banner" class="w-full h-auto rounded-xl shadow-lg">
+            <img src="Banner.jpg" alt="Tiendita BIC Banner" class="w-full h-auto rounded-xl shadow-lg">
         </div>
         <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Turnos en la Tiendita</h1>
         <div class="grid md:grid-cols-2 gap-8">
@@ -56,7 +56,7 @@
     </div>
 
     <div id="client-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
-        <div class="logo-header"><img src="https://placehold.co/80x80/ffffff/000000?text=Logo" alt="BIC Logo" class="h-auto"><h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1></div>
+        <div class="logo-header"><img src="logo.jpg" alt="BIC Logo" class="h-auto"><h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1></div>
         <h2 class="text-2xl font-semibold text-center mb-6">Solicitar un Nuevo Turno</h2>
         <div class="text-center mb-6"><p class="text-lg text-gray-600">Tu turno actual es:</p><p id="current-turn-number" class="text-6xl font-extrabold text-blue-600 my-4">--</p></div>
         <form id="request-form" class="space-y-4">
@@ -68,7 +68,7 @@
     </div>
     
     <div id="admin-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
-        <div class="logo-header"><img src="https://placehold.co/80x80/ffffff/000000?text=Logo" alt="BIC Logo" class="h-auto"><h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1></div>
+        <div class="logo-header"><img src="logo.jpg" alt="BIC Logo" class="h-auto"><h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1></div>
         <h2 class="text-2xl font-semibold text-center mb-6">Panel de Administración</h2>
         <div id="admin-login" class="flex flex-col items-center">
             <h3 class="text-xl font-bold mb-4">Ingresar</h3>
@@ -78,7 +78,7 @@
         <div id="admin-content" class="hidden">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div class="flex flex-col items-center p-6 border rounded-lg shadow-sm"><h3 class="text-xl font-bold text-center text-gray-700 mb-4">Llamar Siguiente Turno</h3><button id="call-next-btn" class="px-6 py-3 btn-primary rounded-full font-bold">Llamar Turno</button></div>
-                <div class="flex flex-col items-center p-6 border rounded-lg shadow-sm"><h3 class="text-xl font-bold text-center text-gray-700 mb-4">Reiniciar Turnos</h3><button id="cancel-all-btn" class="px-6 py-3 btn-danger rounded-full font-bold">Reiniciar Conteo</button></div>
+                <div class="flex flex-col items-center p-6 border rounded-lg shadow-sm"><h3 class="text-xl font-bold text-center text-gray-700 mb-4">Borrar Turnos</h3><button id="cancel-all-btn" class="px-6 py-3 btn-danger rounded-full font-bold">Borrar y Reiniciar</button></div>
                 <div class="flex flex-col items-center p-6 border rounded-lg shadow-sm"><h3 class="text-xl font-bold text-center text-gray-700 mb-4">Descargar Lista</h3><button id="download-excel-btn" class="px-6 py-3 bg-green-500 text-white rounded-full font-bold hover:bg-green-600 transition-all">Descargar Excel</button></div>
             </div>
             <div class="mt-8">
@@ -88,7 +88,7 @@
         </div>
     </div>
 
-    <!-- Modal (sin cambios) -->
+    <!-- Modal -->
     <div id="modal" class="modal">
         <div class="modal-content text-center">
             <h3 id="modal-title" class="text-xl font-bold mb-4"></h3>
@@ -106,10 +106,9 @@
         import { 
             getFirestore, collection, doc, onSnapshot, query, orderBy, 
             runTransaction, serverTimestamp, writeBatch, getDocs, where, limit,
-            updateDoc // <--- Importar updateDoc
+            updateDoc
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // --- PEGA AQUÍ LA CONFIGURACIÓN DE TU PROYECTO FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyDUwf0DHEN492RL5CHHRXiQ5mm96Gsztco",
             authDomain: "tiendita-bic-v2.firebaseapp.com",
@@ -119,14 +118,12 @@
             appId: "1:167484928309:web:eb6965fa45825b3b091c7c",
             measurementId: "G-W59ZDBFN97"
         };
-        // --------------------------------------------------------
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const turnsCollection = collection(db, 'turns');
         const counterDocRef = doc(db, 'counters', 'turnCounter');
     
-        // DOM Elements
         const views = { public: document.getElementById('public-view'), client: document.getElementById('client-view'), admin: document.getElementById('admin-view') };
         const navLinks = document.querySelectorAll('.nav-link');
         const calledTurnsContainer = document.getElementById('called-turns');
@@ -155,7 +152,6 @@
         let lastGeneratedTurn = null; 
         let allTurns = [];
 
-        // --- Funciones de Utilidad y UI ---
         function showModal(title, message, showDownloadButton) {
             modalTitle.textContent = title;
             modalMessage.textContent = message;
@@ -190,30 +186,20 @@
 
         function generateTicketImage(turnNumber, clientName, dateCreated) {
             const ctx = ticketCanvas.getContext('2d');
-            ticketCanvas.width = 600;
-            ticketCanvas.height = 400;
-            ctx.fillStyle = '#0ea5e9';
-            ctx.fillRect(0, 0, ticketCanvas.width, ticketCanvas.height);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.fillRect(0, 0, ticketCanvas.width, ticketCanvas.height);
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 32px Inter';
-            ctx.textAlign = 'center';
+            ticketCanvas.width = 600; ticketCanvas.height = 400;
+            ctx.fillStyle = '#0ea5e9'; ctx.fillRect(0, 0, ticketCanvas.width, ticketCanvas.height);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fillRect(0, 0, ticketCanvas.width, ticketCanvas.height);
+            ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 32px Inter'; ctx.textAlign = 'center';
             ctx.fillText('Tiendita BIC', ticketCanvas.width / 2, 80);
-            ctx.font = 'bold 28px Inter';
-            ctx.fillText(`Cliente: ${clientName}`, ticketCanvas.width / 2, 160);
-            ctx.font = 'bold 80px Inter';
-            ctx.fillText(formatTurnNumber(turnNumber), ticketCanvas.width / 2, 260);
-            ctx.font = '24px Inter';
-            ctx.fillText(`Fecha: ${dateCreated}`, ticketCanvas.width / 2, 320);
+            ctx.font = 'bold 28px Inter'; ctx.fillText(`Cliente: ${clientName}`, ticketCanvas.width / 2, 160);
+            ctx.font = 'bold 80px Inter'; ctx.fillText(formatTurnNumber(turnNumber), ticketCanvas.width / 2, 260);
+            ctx.font = '24px Inter'; ctx.fillText(`Fecha: ${dateCreated}`, ticketCanvas.width / 2, 320);
             const image = ticketCanvas.toDataURL('image/png');
             const link = document.createElement('a');
-            link.download = `Turno_${formatTurnNumber(turnNumber)}.png`;
-            link.href = image;
+            link.download = `Turno_${formatTurnNumber(turnNumber)}.png`; link.href = image;
             link.click();
         }
 
-        // --- Lógica de Renderizado ---
         function renderTurnCards(container, turns, type) {
             container.innerHTML = turns.length === 0 
                 ? `<div class="p-6 text-center text-gray-500">${type === 'called' ? 'No hay turnos en espera.' : 'La cola está vacía.'}</div>`
@@ -246,7 +232,6 @@
             const pendingTurns = turns.filter(t => t.status === 'pending').sort((a, b) => a.number - b.number).slice(0, 5);
             renderTurnCards(calledTurnsContainer, calledTurns, 'called');
             renderTurnCards(pendingTurnsContainer, pendingTurns, 'pending');
-
             renderAdminTurnCards(turnListContainer, turns.sort((a,b) => a.number - b.number));
             
             if (currentClientDetails) {
@@ -257,16 +242,12 @@
                     const myCalledTurn = turns.find(turn => turn.number === myTurn.number && turn.status === 'called');
                     if (myCalledTurn) {
                         showModal('¡Es tu turno!', `El turno ${formatTurnNumber(myCalledTurn.number)} ha sido llamado.`, false);
-                        currentClientDetails = null; // Reset after being called
-                        lastGeneratedTurn = null;
-                        clientInfoDiv.classList.add('hidden');
-                        currentTurnNumberElement.textContent = '--';
+                        currentClientDetails = null; lastGeneratedTurn = null;
+                        clientInfoDiv.classList.add('hidden'); currentTurnNumberElement.textContent = '--';
                     }
                 }
             }
         }
-
-        // ========= LÓGICA DE FIREBASE =========
 
         const q = query(turnsCollection, orderBy("number", "desc"), limit(50));
         onSnapshot(q, (querySnapshot) => {
@@ -278,12 +259,10 @@
             e.preventDefault();
             const clientName = clientNameInput.value.trim();
             const employeeNumber = employeeNumberInput.value.trim();
-
             if (!clientName || !employeeNumber) {
                 showModal('Error', 'Por favor, introduce tu nombre y número de empleado.', false);
                 return;
             }
-
             try {
                 const newTurnData = await runTransaction(db, async (transaction) => {
                     const counterDoc = await transaction.get(counterDocRef);
@@ -294,49 +273,31 @@
                     transaction.set(counterDocRef, { lastNumber: newTurnNumber }, { merge: true });
                     return newTurn;
                 });
-                
                 currentClientDetails = { name: clientName, empNum: employeeNumber };
                 lastGeneratedTurn = newTurnData;
                 showModal('Turno Solicitado', `Tu número de turno es el ${formatTurnNumber(newTurnData.number)}.`, true);
                 requestForm.reset();
-
             } catch (error) {
                 console.error("Error al crear el turno: ", error);
                 showModal('Error', 'No se pudo crear el turno. Inténtalo de nuevo.', false);
             }
         });
 
-        // =========================================================
-        // ===        FUNCIÓN CORREGIDA PARA LLAMAR TURNO        ===
-        // =========================================================
         callNextBtn.addEventListener('click', async () => {
-            const nextTurnQuery = query(
-                turnsCollection,
-                where("status", "==", "pending"),
-                orderBy("number"),
-                limit(1)
-            );
-        
+            const nextTurnQuery = query(turnsCollection, where("status", "==", "pending"), orderBy("number"), limit(1));
             try {
                 const querySnapshot = await getDocs(nextTurnQuery);
-        
                 if (!querySnapshot.empty) {
                     const nextTurnDoc = querySnapshot.docs[0];
                     const turnRef = doc(db, 'turns', nextTurnDoc.id);
-        
-                    await updateDoc(turnRef, {
-                        status: 'called',
-                        timestamp: serverTimestamp()
-                    });
-        
+                    await updateDoc(turnRef, { status: 'called', timestamp: serverTimestamp() });
                     showModal('Turno Llamado', `El turno ${formatTurnNumber(nextTurnDoc.data().number)} ha sido llamado.`, false);
-                
                 } else {
                     showModal('Sin Turnos Pendientes', 'No hay más turnos en la cola.', false);
                 }
             } catch (error) {
                 console.error("Error al llamar al siguiente turno:", error);
-                showModal('Error', 'Ocurrió un error al intentar llamar al turno. Revisa la consola.', false);
+                showModal('Error de base de datos', 'Probablemente falta un índice en Firestore. Revisa la consola del navegador (F12) para ver el error completo y un enlace para crearlo.', false);
             }
         });
 
@@ -352,31 +313,23 @@
         downloadExcelBtn.addEventListener('click', async () => {
             const turnsSnapshot = await getDocs(query(turnsCollection, orderBy("number")));
             const turnsToDownload = turnsSnapshot.docs.map(doc => doc.data());
-
             if (turnsToDownload.length === 0) {
                 showModal('No hay datos para descargar', 'La lista de turnos está vacía.', false);
                 return;
             }
-            
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
             csvContent += "Turno,Nombre,Numero de Empleado,Estado,Fecha de Creacion\n";
-            
             turnsToDownload.forEach(turn => {
                 const date = turn.timestamp ? new Date(turn.timestamp.seconds * 1000).toLocaleString('es-MX') : 'N/A';
                 const row = [`"${formatTurnNumber(turn.number)}"`, `"${turn.clientName}"`, `"${turn.employeeNumber}"`, `"${turn.status}"`, `"${date}"`].join(',');
                 csvContent += row + "\n";
             });
-            
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "reporte_turnos.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            link.setAttribute("href", encodedUri); link.setAttribute("download", "reporte_turnos.csv");
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
         });
         
-        // --- Otros Event Listeners ---
         downloadTicketBtn.addEventListener('click', () => {
             if (lastGeneratedTurn) {
                 generateTicketImage(lastGeneratedTurn.number, lastGeneratedTurn.clientName, new Date().toLocaleString('es-MX'));
@@ -393,7 +346,6 @@
             }
         });
 
-        // Initialize
         window.onload = function() {
             const initialView = window.location.hash.substring(1) || 'public';
             showView(initialView);
@@ -401,3 +353,4 @@
     </script>
 </body>
 </html>
+
