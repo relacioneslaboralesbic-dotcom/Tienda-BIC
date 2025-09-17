@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiendita BIC - Sistema de Turnos (Todo en Uno)</title>
+    <title>Tiendita BIC - Sistema de Turnos</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -118,6 +118,7 @@
 
     <div id="public-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
         <div class="w-full mb-8">
+            <!-- Asumiendo que el Banner.jpg está en la raíz del repositorio -->
             <img src="Banner.jpg" alt="Tiendita BIC Banner" class="w-full h-auto rounded-xl shadow-lg">
         </div>
         <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Turnos en la Tiendita</h1>
@@ -143,6 +144,7 @@
 
     <div id="client-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
         <div class="logo-header">
+            <!-- Asumiendo que el logo.jpg está en la raíz del repositorio -->
             <img src="logo.jpg" alt="BIC Logo" class="h-auto">
             <h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1>
         </div>
@@ -171,6 +173,7 @@
     
     <div id="admin-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
         <div class="logo-header">
+            <!-- Asumiendo que el logo.jpg está en la raíz del repositorio -->
             <img src="logo.jpg" alt="BIC Logo" class="h-auto">
             <h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1>
         </div>
@@ -192,13 +195,6 @@
                     <h3 class="text-xl font-bold text-center text-gray-700 mb-4">Cancelar Todos</h3>
                     <button id="cancel-all-btn" class="px-6 py-3 btn-danger rounded-full font-bold">
                         Cancelar Todos los Turnos
-                    </button>
-                </div>
-                <!-- Nuevo botón para descargar Excel -->
-                <div class="flex flex-col items-center p-6 border rounded-lg shadow-sm">
-                    <h3 class="text-xl font-bold text-center text-gray-700 mb-4">Descargar Lista</h3>
-                    <button id="download-excel-btn" class="px-6 py-3 bg-green-500 text-white rounded-full font-bold hover:bg-green-600 transition-all">
-                        Descargar Excel
                     </button>
                 </div>
             </div>
@@ -223,49 +219,51 @@
     <!-- Hidden canvas for image generation -->
     <canvas id="ticketCanvas" class="hidden"></canvas>
 
-    <script>
-        // DOM Elements for all views
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, orderBy, getDocs, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Configuración de Firebase y Autenticación
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let userId = null;
+        let isAuthReady = false;
+        let unsubscribeFromTurns = null;
+
+        // DOM Elements
         const views = {
             public: document.getElementById('public-view'),
             client: document.getElementById('client-view'),
             admin: document.getElementById('admin-view')
         };
         const navLinks = document.querySelectorAll('.nav-link');
-
-        // Public View elements
         const calledTurnsContainer = document.getElementById('called-turns');
         const pendingTurnsContainer = document.getElementById('pending-turns');
-        
-        // Client View elements
         const requestForm = document.getElementById('request-form');
         const currentTurnNumberElement = document.getElementById('current-turn-number');
         const clientNameInput = document.getElementById('client-name');
         const employeeNumberInput = document.getElementById('employee-number');
         const clientInfoDiv = document.getElementById('client-info');
-
-        // Admin View elements
         const adminPasswordInput = document.getElementById('admin-password');
         const adminLoginBtn = document.getElementById('admin-login-btn');
         const adminContent = document.getElementById('admin-content');
         const adminLogin = document.getElementById('admin-login');
         const callNextBtn = document.getElementById('call-next-btn');
         const cancelAllBtn = document.getElementById('cancel-all-btn');
-        const downloadExcelBtn = document.getElementById('download-excel-btn');
         const turnListContainer = document.getElementById('turn-list');
         const ADMIN_PASSWORD = "bic-admin";
-
-        // Modal elements
         const modal = document.getElementById('modal');
         const modalTitle = document.getElementById('modal-title');
         const modalMessage = document.getElementById('modal-message');
         const downloadTicketBtn = document.getElementById('download-ticket-btn');
-        
-        // Image generation elements
-        const ticketCanvas = document.getElementById('ticketCanvas');
 
-        // Track the current client's info
+        let lastGeneratedTurn = null;
         let currentClientDetails = null;
-        let lastGeneratedTurn = null; // Store the last turn object for download
 
         function showModal(title, message, showDownloadButton) {
             modalTitle.textContent = title;
@@ -282,7 +280,6 @@
             modal.style.display = 'none';
         }
 
-        // --- View Management ---
         function showView(viewName) {
             Object.values(views).forEach(view => view.classList.add('hidden'));
             if (views[viewName]) {
@@ -296,13 +293,6 @@
                         link.classList.add('bg-gray-100', 'text-gray-700', 'border-gray-300');
                     }
                 });
-                
-                // Special actions for each view
-                if (viewName === 'public' || viewName === 'admin') {
-                    updateTurnDisplay();
-                } else if (viewName === 'client') {
-                    updateClientStatus();
-                }
             }
         }
 
@@ -311,12 +301,10 @@
             showView(viewName);
         });
         
-        // Helper function to format turn number with leading zeros
         function formatTurnNumber(num) {
             return '#' + String(num).padStart(3, '0');
         }
 
-        // --- Core Logic (from previous files) ---
         function renderTurnCards(container, turns, type) {
             container.innerHTML = '';
             if (turns.length === 0) {
@@ -358,77 +346,71 @@
             });
         }
 
-        function updateTurnDisplay() {
-            const allTurns = JSON.parse(localStorage.getItem('allTurns')) || [];
-            
-            // Public View Update
-            const calledTurns = allTurns
+        async function updateTurnDisplay(turns) {
+            const calledTurns = turns
                 .filter(turn => turn.status === 'called')
-                .sort((a, b) => b.timestamp - a.timestamp)
-                .slice(0, 5); // Show up to 5 called turns
+                .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
+                .slice(0, 5);
             
-            const pendingTurns = allTurns
+            const pendingTurns = turns
                 .filter(turn => turn.status === 'pending')
                 .sort((a, b) => a.number - b.number)
-                .slice(0, 5); // Show up to 5 pending turns
+                .slice(0, 5);
                 
             renderTurnCards(calledTurnsContainer, calledTurns, 'called');
             renderTurnCards(pendingTurnsContainer, pendingTurns, 'pending');
-
-            // Admin View Update
-            renderAdminTurnCards(turnListContainer, allTurns);
+            renderAdminTurnCards(turnListContainer, turns);
         }
 
-        function updateClientStatus() {
-            if (!currentClientDetails) {
+        async function updateClientStatus() {
+            if (!currentClientDetails || !isAuthReady) {
                 return;
             }
-            const allTurns = JSON.parse(localStorage.getItem('allTurns')) || [];
-            const myTurn = allTurns.find(turn => turn.clientName === currentClientDetails.name && turn.employeeNumber === currentClientDetails.empNum);
-            
-            if (myTurn) {
-                currentTurnNumberElement.textContent = formatTurnNumber(myTurn.number);
-                clientInfoDiv.classList.remove('hidden');
-                if (myTurn.status === 'called') {
-                    showModal('¡Es tu turno!', 'El turno ' + formatTurnNumber(myTurn.number) + ' ha sido llamado.', false);
+            try {
+                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                const q = query(turnsRef, where('clientName', '==', currentClientDetails.name), where('employeeNumber', '==', currentClientDetails.empNum));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const myTurnDoc = querySnapshot.docs[0];
+                    const myTurn = myTurnDoc.data();
+                    currentTurnNumberElement.textContent = formatTurnNumber(myTurn.number);
+                    clientInfoDiv.classList.remove('hidden');
+                    if (myTurn.status === 'called') {
+                        showModal('¡Es tu turno!', 'El turno ' + formatTurnNumber(myTurn.number) + ' ha sido llamado.', false);
+                    }
                 }
+            } catch (error) {
+                console.error("Error al actualizar el estado del cliente: ", error);
             }
         }
         
-        // --- New Function: Generate and Download Image Ticket ---
         function generateTicketImage(turnNumber, clientName, dateCreated) {
             const canvas = document.getElementById('ticketCanvas');
             const ctx = canvas.getContext('2d');
             
-            // Set canvas dimensions
             canvas.width = 600;
             canvas.height = 400;
 
-            // Draw a styled background
-            ctx.fillStyle = '#0ea5e9'; // A nice BIC blue
+            ctx.fillStyle = '#0ea5e9';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Add title
             ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 32px Inter';
             ctx.textAlign = 'center';
             ctx.fillText('Tiendita BIC', canvas.width / 2, 80);
 
-            // Add client name
             ctx.font = 'bold 28px Inter';
             ctx.fillText(`Cliente: ${clientName}`, canvas.width / 2, 160);
 
-            // Add turn number
             ctx.font = 'bold 80px Inter';
             ctx.fillText(formatTurnNumber(turnNumber), canvas.width / 2, 260);
 
-            // Add creation date
             ctx.font = '24px Inter';
             ctx.fillText(`Fecha: ${dateCreated}`, canvas.width / 2, 320);
 
-            // Convert canvas to image and trigger download
             const image = canvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.download = `Turno_${formatTurnNumber(turnNumber)}.png`;
@@ -437,54 +419,70 @@
         }
 
         // --- Event Listeners ---
-        // Request a new turn
-        requestForm.addEventListener('submit', (e) => {
+        requestForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            let allTurns = JSON.parse(localStorage.getItem('allTurns')) || [];
-            let lastTurnNumber = parseInt(localStorage.getItem('lastTurn')) || 0;
-            
-            const clientName = clientNameInput.value.trim();
-            const employeeNumber = employeeNumberInput.value.trim();
-            const creationDate = new Date();
-            
-            if (!clientName || !employeeNumber) {
-                showModal('Error', 'Por favor, introduce tu nombre y número de empleado.', false);
+            if (!isAuthReady) {
+                showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
                 return;
             }
+            try {
+                const clientName = clientNameInput.value.trim();
+                const employeeNumber = employeeNumberInput.value.trim();
 
-            const newTurnNumber = lastTurnNumber + 1;
-            const newTurn = {
-                number: newTurnNumber,
-                clientName: clientName,
-                employeeNumber: employeeNumber,
-                status: 'pending',
-                timestamp: creationDate.getTime()
-            };
+                if (!clientName || !employeeNumber) {
+                    showModal('Error', 'Por favor, introduce tu nombre y número de empleado.', false);
+                    return;
+                }
 
-            allTurns.push(newTurn);
-            localStorage.setItem('lastTurn', newTurnNumber);
-            localStorage.setItem('allTurns', JSON.stringify(allTurns));
-            
-            currentClientDetails = { name: clientName, empNum: employeeNumber };
-            lastGeneratedTurn = newTurn; // Store the turn object
-            
-            showModal('Turno Solicitado', `Tu número de turno es el ${formatTurnNumber(newTurnNumber)}.`, true);
-            updateClientStatus();
+                const turnsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                let newTurnNumber = 1;
+                
+                // Transacción para obtener el último número de turno y crear uno nuevo de forma atómica
+                await runTransaction(db, async (transaction) => {
+                    const lastTurnQuery = query(turnsCollection, orderBy('number', 'desc'), limit(1));
+                    const lastTurnSnapshot = await getDocs(lastTurnQuery);
+                    
+                    if (!lastTurnSnapshot.empty) {
+                        const lastTurnDoc = lastTurnSnapshot.docs[0];
+                        const lastTurn = lastTurnDoc.data();
+                        newTurnNumber = lastTurn.number + 1;
+                    }
+
+                    const newTurnRef = doc(turnsCollection);
+                    const newTurn = {
+                        number: newTurnNumber,
+                        clientName: clientName,
+                        employeeNumber: employeeNumber,
+                        status: 'pending',
+                        timestamp: serverTimestamp()
+                    };
+                    transaction.set(newTurnRef, newTurn);
+                    lastGeneratedTurn = newTurn;
+                });
+
+                currentClientDetails = { name: clientName, empNum: employeeNumber };
+                showModal('Turno Solicitado', `Tu número de turno es el ${formatTurnNumber(lastGeneratedTurn.number)}.`, true);
+                clientNameInput.value = '';
+                employeeNumberInput.value = '';
+
+            } catch (error) {
+                console.error("Error al solicitar el turno: ", error);
+                showModal('Error', 'Hubo un problema al solicitar el turno. Por favor, inténtalo de nuevo.', false);
+            }
         });
 
-        // Event listener for the new download button in the modal
         downloadTicketBtn.addEventListener('click', () => {
             if (lastGeneratedTurn) {
+                const date = lastGeneratedTurn.timestamp ? new Date(lastGeneratedTurn.timestamp.toMillis()).toLocaleString() : 'N/A';
                 generateTicketImage(
                     lastGeneratedTurn.number,
                     lastGeneratedTurn.clientName,
-                    new Date(lastGeneratedTurn.timestamp).toLocaleString()
+                    date
                 );
                 closeModal();
             }
         });
 
-        // Admin login
         adminLoginBtn.addEventListener('click', () => {
             if (adminPasswordInput.value === ADMIN_PASSWORD) {
                 adminLogin.classList.add('hidden');
@@ -495,76 +493,90 @@
             }
         });
         
-        // Call next turn
-        callNextBtn.addEventListener('click', () => {
-            let allTurns = JSON.parse(localStorage.getItem('allTurns')) || [];
-            
-            const pendingTurns = allTurns.filter(turn => turn.status === 'pending').sort((a, b) => a.number - b.number);
-            
-            if (pendingTurns.length > 0) {
-                const nextTurn = pendingTurns[0];
-                const index = allTurns.findIndex(turn => turn.number === nextTurn.number);
-                allTurns[index].status = 'called';
-                allTurns[index].timestamp = Date.now();
-                localStorage.setItem('allTurns', JSON.stringify(allTurns));
-                showModal('Turno Llamado', `El turno ${formatTurnNumber(nextTurn.number)} ha sido llamado.`, false);
-            } else {
-                showModal('Sin Turnos Pendientes', 'No hay más turnos en la cola.', false);
-            }
-        });
-
-        // Cancel all turns
-        cancelAllBtn.addEventListener('click', () => {
-            localStorage.removeItem('allTurns');
-            localStorage.setItem('lastTurn', 0);
-            showModal('Turnos Cancelados', 'Todos los turnos han sido cancelados.', false);
-        });
-        
-        // Download turns as Excel (CSV)
-        downloadExcelBtn.addEventListener('click', () => {
-            const allTurns = JSON.parse(localStorage.getItem('allTurns')) || [];
-            
-            if (allTurns.length === 0) {
-                showModal('No hay datos para descargar', 'La lista de turnos está vacía.', false);
+        callNextBtn.addEventListener('click', async () => {
+            if (!isAuthReady) {
+                showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
                 return;
             }
-            
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM para acentos
-            csvContent += "Turno,Nombre,Numero de Empleado,Estado,Fecha de Creacion\n";
-            
-            allTurns.forEach(turn => {
-                const date = turn.timestamp ? new Date(turn.timestamp).toLocaleString() : 'N/A';
-                const row = [
-                    formatTurnNumber(turn.number),
-                    `"${turn.clientName}"`,
-                    `"${turn.employeeNumber}"`,
-                    `"${turn.status === 'called' ? 'Llamado' : 'Pendiente'}"`,
-                    `"${date}"`
-                ].join(',');
-                csvContent += row + "\n";
-            });
-            
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "reporte_turnos.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
+            try {
+                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                const pendingTurnQuery = query(turnsRef, where('status', '==', 'pending'), orderBy('number', 'asc'));
+                const querySnapshot = await getDocs(pendingTurnQuery);
 
-        // Real-time synchronization
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'allTurns') {
-                updateTurnDisplay();
-                updateClientStatus();
+                if (!querySnapshot.empty) {
+                    const nextTurnDoc = querySnapshot.docs[0];
+                    await updateDoc(doc(turnsRef, nextTurnDoc.id), { status: 'called', timestamp: serverTimestamp() });
+                    showModal('Turno Llamado', `El turno ${formatTurnNumber(nextTurnDoc.data().number)} ha sido llamado.`, false);
+                } else {
+                    showModal('Sin Turnos Pendientes', 'No hay más turnos en la cola.', false);
+                }
+            } catch (error) {
+                console.error("Error al llamar el siguiente turno: ", error);
+                showModal('Error', 'Hubo un problema al llamar el siguiente turno.', false);
             }
         });
 
-        // Initialize the app on page load
-        window.onload = function() {
+        cancelAllBtn.addEventListener('click', async () => {
+            if (!isAuthReady) {
+                showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
+                return;
+            }
+            try {
+                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                const querySnapshot = await getDocs(turnsRef);
+                const batch = writeBatch(db);
+                querySnapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+                showModal('Turnos Cancelados', 'Todos los turnos han sido cancelados.', false);
+            } catch (error) {
+                console.error("Error al cancelar todos los turnos: ", error);
+                showModal('Error', 'Hubo un problema al cancelar todos los turnos.', false);
+            }
+        });
+        
+        // Inicialización de la aplicación y escucha de cambios en la base de datos
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                isAuthReady = true;
+
+                // Si ya hay un suscriptor, desubscribirse antes de crear uno nuevo
+                if (unsubscribeFromTurns) {
+                    unsubscribeFromTurns();
+                }
+
+                // Escuchar cambios en la base de datos en tiempo real
+                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                unsubscribeFromTurns = onSnapshot(turnsRef, (snapshot) => {
+                    const allTurns = [];
+                    snapshot.forEach((doc) => {
+                        allTurns.push({ id: doc.id, ...doc.data() });
+                    });
+                    console.log('Datos de Firestore actualizados.');
+                    updateTurnDisplay(allTurns);
+                    updateClientStatus();
+                });
+            } else {
+                isAuthReady = false;
+            }
+        });
+
+        window.onload = async () => {
             const initialView = window.location.hash.substring(1) || 'public';
             showView(initialView);
+            // Autenticación al cargar la página
+            try {
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Error de autenticación:", error);
+                showModal('Error de autenticación', 'No se pudo iniciar sesión. Por favor, recarga la página.', false);
+            }
         };
     </script>
 </body>
