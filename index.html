@@ -272,6 +272,7 @@
         const clientNameInput = document.getElementById('client-name');
         const employeeNumberInput = document.getElementById('employee-number');
         const clientInfoDiv = document.getElementById('client-info');
+        // AHORA ESTÁ CORREGIDO: const adminPasswordInput = document = document.getElementById('admin-password');
         const adminPasswordInput = document.getElementById('admin-password');
         const adminLoginBtn = document.getElementById('admin-login-btn');
         const adminContent = document.getElementById('admin-content');
@@ -390,7 +391,6 @@
                 return;
             }
             try {
-                // Modificación: usar la colección 'Turnos'
                 const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'Turnos');
                 const q = query(turnsRef, where('clientName', '==', currentClientDetails.name), where('employeeNumber', '==', currentClientDetails.empNum));
                 const querySnapshot = await getDocs(q);
@@ -451,7 +451,14 @@
                     return;
                 }
                 try {
-                    // Modificación: usar la colección 'Turnos'
+                    const clientName = clientNameInput.value.trim();
+                    const employeeNumber = employeeNumberInput.value.trim();
+
+                    if (!clientName || !employeeNumber) {
+                        showModal('Error', 'Por favor, introduce tu nombre y número de empleado.', false);
+                        return;
+                    }
+
                     const turnsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'Turnos');
                     let newTurnNumber = 1;
                     
@@ -469,8 +476,8 @@
                         const newTurnRef = doc(turnsCollection);
                         const newTurn = {
                             number: newTurnNumber,
-                            clientName: clientNameInput.value.trim(),
-                            employeeNumber: employeeNumberInput.value.trim(),
+                            clientName: clientName,
+                            employeeNumber: employeeNumber,
                             status: 'pending',
                             timestamp: serverTimestamp()
                         };
@@ -478,7 +485,7 @@
                         lastGeneratedTurn = newTurn;
                     });
 
-                    currentClientDetails = { name: clientNameInput.value.trim(), empNum: employeeNumberInput.value.trim() };
+                    currentClientDetails = { name: clientName, empNum: employeeNumber };
                     showModal('Turno Solicitado', `Tu número de turno es el ${formatTurnNumber(lastGeneratedTurn.number)}.`, true);
                     clientNameInput.value = '';
                     employeeNumberInput.value = '';
@@ -523,7 +530,6 @@
                     return;
                 }
                 try {
-                    // Modificación: usar la colección 'Turnos'
                     const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'Turnos');
                     const pendingTurnQuery = query(turnsRef, where('status', '==', 'pending'), orderBy('number', 'asc'));
                     const querySnapshot = await getDocs(pendingTurnQuery);
@@ -549,7 +555,6 @@
                     return;
                 }
                 try {
-                    // Modificación: usar la colección 'Turnos'
                     const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'Turnos');
                     const querySnapshot = await getDocs(turnsRef);
                     const batch = writeBatch(db);
@@ -578,7 +583,6 @@
                     }
 
                     // Escuchar cambios en la base de datos en tiempo real
-                    // Modificación: usar la colección 'Turnos'
                     const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'Turnos');
                     unsubscribeFromTurns = onSnapshot(turnsRef, (snapshot) => {
                         const allTurns = [];
