@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<html><head><title>Tiendita BIC</title></head><body><!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -625,5 +625,46 @@
 </body>
 </html>
 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyDUwf0DHEN492RL5CHHRXiQ5mm96Gsztco",
+    authDomain: "tiendita-bic-v2.firebaseapp.com",
+    projectId: "tiendita-bic-v2",
+    storageBucket: "tiendita-bic-v2.firebasestorage.app",
+    messagingSenderId: "167484928309",
+    appId: "1:167484928309:web:eb6965fa45825b3b091c7c",
+    measurementId: "G-W59ZDBFN97"
+  };
 
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Escuchar cambios en el turno actual
+  const turnoActualRef = ref(db, 'turnos/actual');
+  onValue(turnoActualRef, (snapshot) => {
+    const data = snapshot.val();
+    const display = document.getElementById("turno-actual");
+    if (display) display.innerText = data ? data.nombre : "--";
+  });
+
+  // Agregar nuevo turno desde el formulario
+  const form = document.getElementById("form-turno");
+  if (form) {
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+      const nombre = document.getElementById("nombre").value;
+      const numeroEmpleado = document.getElementById("numeroEmpleado").value;
+      const colaRef = ref(db, 'turnos/cola');
+      push(colaRef, {
+        nombre,
+        numeroEmpleado,
+        timestamp: Date.now()
+      });
+    });
+  }
+</script>
+
+</body></html>
