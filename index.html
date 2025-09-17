@@ -601,23 +601,29 @@
   const turnoActualRef = ref(db, 'turnos/actual');
   onValue(turnoActualRef, (snapshot) => {
     const data = snapshot.val();
-    document.getElementById("turno-actual").innerText = data ? data.nombre : "--";
+    const display = document.getElementById("turno-actual");
+    if (display) display.innerText = data ? data.nombre : "--";
   });
 
   // Agregar nuevo turno desde el formulario
-  document.getElementById("form-turno").addEventListener("submit", function(e) {
-    e.preventDefault();
-    const nombre = document.getElementById("nombre").value;
-    const numeroEmpleado = document.getElementById("numeroEmpleado").value;
-    const colaRef = ref(db, 'turnos/cola');
-    push(colaRef, {
-      nombre,
-      numeroEmpleado,
-      timestamp: Date.now()
+  const form = document.getElementById("form-turno");
+  if (form) {
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+      const nombre = document.getElementById("nombre").value;
+      const numeroEmpleado = document.getElementById("numeroEmpleado").value;
+      const colaRef = ref(db, 'turnos/cola');
+      push(colaRef, {
+        nombre,
+        numeroEmpleado,
+        timestamp: Date.now()
+      });
     });
-  });
+  }
 </script>
 
 </body>
 </html>
+
+
 
