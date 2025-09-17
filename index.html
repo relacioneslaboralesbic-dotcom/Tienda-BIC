@@ -118,7 +118,6 @@
 
     <div id="public-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
         <div class="w-full mb-8">
-            <!-- Asumiendo que el Banner.jpg está en la raíz del repositorio -->
             <img src="Banner.jpg" alt="Tiendita BIC Banner" class="w-full h-auto rounded-xl shadow-lg">
         </div>
         <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Turnos en la Tiendita</h1>
@@ -144,7 +143,6 @@
 
     <div id="client-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
         <div class="logo-header">
-            <!-- Asumiendo que el logo.jpg está en la raíz del repositorio -->
             <img src="logo.jpg" alt="BIC Logo" class="h-auto">
             <h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1>
         </div>
@@ -173,7 +171,6 @@
     
     <div id="admin-view" class="container bg-white rounded-xl shadow-lg p-8 view-section hidden">
         <div class="logo-header">
-            <!-- Asumiendo que el logo.jpg está en la raíz del repositorio -->
             <img src="logo.jpg" alt="BIC Logo" class="h-auto">
             <h1 class="text-3xl font-bold text-center text-gray-800">Tiendita BIC</h1>
         </div>
@@ -612,8 +609,8 @@
                         await signInWithCustomToken(auth, initialAuthToken);
                     }
                 } catch (error) {
-                    console.error("Error de autenticación:", error);
-                    showModal('Error de autenticación con token', 'No se pudo iniciar sesión. Intentando de nuevo de forma anónima.', false);
+                    console.error("Error de autenticación con token:", error);
+                    // Si el token personalizado falla, intentar la autenticación anónima.
                     try {
                         await signInAnonymously(auth);
                     } catch (anonymousError) {
