@@ -216,24 +216,38 @@
         </div>
     </div>
     
+    <div id="error-message" class="fixed inset-0 flex items-center justify-center p-4 bg-red-500 bg-opacity-90 text-white text-center font-bold text-lg hidden">
+        <div class="rounded-lg p-6 bg-red-600 shadow-lg">
+            ¡Error! No se pudo conectar a la base de datos.
+        </div>
+    </div>
+
     <!-- Hidden canvas for image generation -->
     <canvas id="ticketCanvas" class="hidden"></canvas>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, orderBy, getDocs, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, orderBy, getDocs, serverTimestamp, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // Configuración de Firebase y Autenticación
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        // Variables que son provistas por el entorno, pero se añaden valores de respaldo.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : null;
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
         
+        let app, db, auth;
         let userId = null;
         let isAuthReady = false;
         let unsubscribeFromTurns = null;
+
+        if (firebaseConfig) {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        } else {
+            console.error("Firebase no está configurado. La funcionalidad de la base de datos no estará disponible.");
+            document.getElementById('error-message').classList.remove('hidden');
+        }
 
         // DOM Elements
         const views = {
@@ -363,7 +377,7 @@
         }
 
         async function updateClientStatus() {
-            if (!currentClientDetails || !isAuthReady) {
+            if (!currentClientDetails || !isAuthReady || !db) {
                 return;
             }
             try {
@@ -419,163 +433,177 @@
         }
 
         // --- Event Listeners ---
-        requestForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!isAuthReady) {
-                showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
-                return;
-            }
-            try {
-                const clientName = clientNameInput.value.trim();
-                const employeeNumber = employeeNumberInput.value.trim();
-
-                if (!clientName || !employeeNumber) {
-                    showModal('Error', 'Por favor, introduce tu nombre y número de empleado.', false);
+        if (requestForm && db) {
+            requestForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!isAuthReady) {
+                    showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
                     return;
                 }
+                try {
+                    const clientName = clientNameInput.value.trim();
+                    const employeeNumber = employeeNumberInput.value.trim();
 
-                const turnsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
-                let newTurnNumber = 1;
-                
-                // Transacción para obtener el último número de turno y crear uno nuevo de forma atómica
-                await runTransaction(db, async (transaction) => {
-                    const lastTurnQuery = query(turnsCollection, orderBy('number', 'desc'), limit(1));
-                    const lastTurnSnapshot = await getDocs(lastTurnQuery);
-                    
-                    if (!lastTurnSnapshot.empty) {
-                        const lastTurnDoc = lastTurnSnapshot.docs[0];
-                        const lastTurn = lastTurnDoc.data();
-                        newTurnNumber = lastTurn.number + 1;
+                    if (!clientName || !employeeNumber) {
+                        showModal('Error', 'Por favor, introduce tu nombre y número de empleado.', false);
+                        return;
                     }
 
-                    const newTurnRef = doc(turnsCollection);
-                    const newTurn = {
-                        number: newTurnNumber,
-                        clientName: clientName,
-                        employeeNumber: employeeNumber,
-                        status: 'pending',
-                        timestamp: serverTimestamp()
-                    };
-                    transaction.set(newTurnRef, newTurn);
-                    lastGeneratedTurn = newTurn;
-                });
+                    const turnsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                    let newTurnNumber = 1;
+                    
+                    // Transacción para obtener el último número de turno y crear uno nuevo de forma atómica
+                    await runTransaction(db, async (transaction) => {
+                        const lastTurnQuery = query(turnsCollection, orderBy('number', 'desc'), limit(1));
+                        const lastTurnSnapshot = await getDocs(lastTurnQuery);
+                        
+                        if (!lastTurnSnapshot.empty) {
+                            const lastTurnDoc = lastTurnSnapshot.docs[0];
+                            const lastTurn = lastTurnDoc.data();
+                            newTurnNumber = lastTurn.number + 1;
+                        }
 
-                currentClientDetails = { name: clientName, empNum: employeeNumber };
-                showModal('Turno Solicitado', `Tu número de turno es el ${formatTurnNumber(lastGeneratedTurn.number)}.`, true);
-                clientNameInput.value = '';
-                employeeNumberInput.value = '';
+                        const newTurnRef = doc(turnsCollection);
+                        const newTurn = {
+                            number: newTurnNumber,
+                            clientName: clientName,
+                            employeeNumber: employeeNumber,
+                            status: 'pending',
+                            timestamp: serverTimestamp()
+                        };
+                        transaction.set(newTurnRef, newTurn);
+                        lastGeneratedTurn = newTurn;
+                    });
 
-            } catch (error) {
-                console.error("Error al solicitar el turno: ", error);
-                showModal('Error', 'Hubo un problema al solicitar el turno. Por favor, inténtalo de nuevo.', false);
-            }
-        });
+                    currentClientDetails = { name: clientName, empNum: employeeNumber };
+                    showModal('Turno Solicitado', `Tu número de turno es el ${formatTurnNumber(lastGeneratedTurn.number)}.`, true);
+                    clientNameInput.value = '';
+                    employeeNumberInput.value = '';
 
-        downloadTicketBtn.addEventListener('click', () => {
-            if (lastGeneratedTurn) {
-                const date = lastGeneratedTurn.timestamp ? new Date(lastGeneratedTurn.timestamp.toMillis()).toLocaleString() : 'N/A';
-                generateTicketImage(
-                    lastGeneratedTurn.number,
-                    lastGeneratedTurn.clientName,
-                    date
-                );
-                closeModal();
-            }
-        });
-
-        adminLoginBtn.addEventListener('click', () => {
-            if (adminPasswordInput.value === ADMIN_PASSWORD) {
-                adminLogin.classList.add('hidden');
-                adminContent.classList.remove('hidden');
-                showModal('Acceso Concedido', 'Has ingresado al panel de administración.', false);
-            } else {
-                showModal('Acceso Denegado', 'La contraseña es incorrecta.', false);
-            }
-        });
-        
-        callNextBtn.addEventListener('click', async () => {
-            if (!isAuthReady) {
-                showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
-                return;
-            }
-            try {
-                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
-                const pendingTurnQuery = query(turnsRef, where('status', '==', 'pending'), orderBy('number', 'asc'));
-                const querySnapshot = await getDocs(pendingTurnQuery);
-
-                if (!querySnapshot.empty) {
-                    const nextTurnDoc = querySnapshot.docs[0];
-                    await updateDoc(doc(turnsRef, nextTurnDoc.id), { status: 'called', timestamp: serverTimestamp() });
-                    showModal('Turno Llamado', `El turno ${formatTurnNumber(nextTurnDoc.data().number)} ha sido llamado.`, false);
-                } else {
-                    showModal('Sin Turnos Pendientes', 'No hay más turnos en la cola.', false);
+                } catch (error) {
+                    console.error("Error al solicitar el turno: ", error);
+                    showModal('Error', 'Hubo un problema al solicitar el turno. Por favor, inténtalo de nuevo.', false);
                 }
-            } catch (error) {
-                console.error("Error al llamar el siguiente turno: ", error);
-                showModal('Error', 'Hubo un problema al llamar el siguiente turno.', false);
-            }
-        });
+            });
+        }
+        
+        if (downloadTicketBtn) {
+            downloadTicketBtn.addEventListener('click', () => {
+                if (lastGeneratedTurn) {
+                    const date = lastGeneratedTurn.timestamp ? new Date(lastGeneratedTurn.timestamp.toMillis()).toLocaleString() : 'N/A';
+                    generateTicketImage(
+                        lastGeneratedTurn.number,
+                        lastGeneratedTurn.clientName,
+                        date
+                    );
+                    closeModal();
+                }
+            });
+        }
 
-        cancelAllBtn.addEventListener('click', async () => {
-            if (!isAuthReady) {
-                showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
-                return;
-            }
-            try {
-                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
-                const querySnapshot = await getDocs(turnsRef);
-                const batch = writeBatch(db);
-                querySnapshot.docs.forEach(doc => {
-                    batch.delete(doc.ref);
-                });
-                await batch.commit();
-                showModal('Turnos Cancelados', 'Todos los turnos han sido cancelados.', false);
-            } catch (error) {
-                console.error("Error al cancelar todos los turnos: ", error);
-                showModal('Error', 'Hubo un problema al cancelar todos los turnos.', false);
-            }
-        });
+        if (adminLoginBtn && adminContent) {
+            adminLoginBtn.addEventListener('click', () => {
+                if (adminPasswordInput.value === ADMIN_PASSWORD) {
+                    adminLogin.classList.add('hidden');
+                    adminContent.classList.remove('hidden');
+                    showModal('Acceso Concedido', 'Has ingresado al panel de administración.', false);
+                } else {
+                    showModal('Acceso Denegado', 'La contraseña es incorrecta.', false);
+                }
+            });
+        }
+        
+        if (callNextBtn && db) {
+            callNextBtn.addEventListener('click', async () => {
+                if (!isAuthReady) {
+                    showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
+                    return;
+                }
+                try {
+                    const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                    const pendingTurnQuery = query(turnsRef, where('status', '==', 'pending'), orderBy('number', 'asc'));
+                    const querySnapshot = await getDocs(pendingTurnQuery);
+
+                    if (!querySnapshot.empty) {
+                        const nextTurnDoc = querySnapshot.docs[0];
+                        await updateDoc(doc(turnsRef, nextTurnDoc.id), { status: 'called', timestamp: serverTimestamp() });
+                        showModal('Turno Llamado', `El turno ${formatTurnNumber(nextTurnDoc.data().number)} ha sido llamado.`, false);
+                    } else {
+                        showModal('Sin Turnos Pendientes', 'No hay más turnos en la cola.', false);
+                    }
+                } catch (error) {
+                    console.error("Error al llamar el siguiente turno: ", error);
+                    showModal('Error', 'Hubo un problema al llamar el siguiente turno.', false);
+                }
+            });
+        }
+
+        if (cancelAllBtn && db) {
+            cancelAllBtn.addEventListener('click', async () => {
+                if (!isAuthReady) {
+                    showModal('Error', 'La aplicación no está lista. Por favor, espera un momento y vuelve a intentarlo.', false);
+                    return;
+                }
+                try {
+                    const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                    const querySnapshot = await getDocs(turnsRef);
+                    const batch = writeBatch(db);
+                    querySnapshot.docs.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    await batch.commit();
+                    showModal('Turnos Cancelados', 'Todos los turnos han sido cancelados.', false);
+                } catch (error) {
+                    console.error("Error al cancelar todos los turnos: ", error);
+                    showModal('Error', 'Hubo un problema al cancelar todos los turnos.', false);
+                }
+            });
+        }
         
         // Inicialización de la aplicación y escucha de cambios en la base de datos
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                isAuthReady = true;
+        if (auth && db) {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    isAuthReady = true;
 
-                // Si ya hay un suscriptor, desubscribirse antes de crear uno nuevo
-                if (unsubscribeFromTurns) {
-                    unsubscribeFromTurns();
-                }
+                    // Si ya hay un suscriptor, desubscribirse antes de crear uno nuevo
+                    if (unsubscribeFromTurns) {
+                        unsubscribeFromTurns();
+                    }
 
-                // Escuchar cambios en la base de datos en tiempo real
-                const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
-                unsubscribeFromTurns = onSnapshot(turnsRef, (snapshot) => {
-                    const allTurns = [];
-                    snapshot.forEach((doc) => {
-                        allTurns.push({ id: doc.id, ...doc.data() });
+                    // Escuchar cambios en la base de datos en tiempo real
+                    const turnsRef = collection(db, 'artifacts', appId, 'public', 'data', 'turns');
+                    unsubscribeFromTurns = onSnapshot(turnsRef, (snapshot) => {
+                        const allTurns = [];
+                        snapshot.forEach((doc) => {
+                            allTurns.push({ id: doc.id, ...doc.data() });
+                        });
+                        console.log('Datos de Firestore actualizados.');
+                        updateTurnDisplay(allTurns);
+                        updateClientStatus();
                     });
-                    console.log('Datos de Firestore actualizados.');
-                    updateTurnDisplay(allTurns);
-                    updateClientStatus();
-                });
-            } else {
-                isAuthReady = false;
-            }
-        });
+                } else {
+                    isAuthReady = false;
+                }
+            });
+        }
 
         window.onload = async () => {
             const initialView = window.location.hash.substring(1) || 'public';
             showView(initialView);
             // Autenticación al cargar la página
-            try {
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+            if (auth) {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Error de autenticación:", error);
+                    showModal('Error de autenticación', 'No se pudo iniciar sesión. Por favor, recarga la página.', false);
                 }
-            } catch (error) {
-                console.error("Error de autenticación:", error);
-                showModal('Error de autenticación', 'No se pudo iniciar sesión. Por favor, recarga la página.', false);
             }
         };
     </script>
