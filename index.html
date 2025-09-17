@@ -228,7 +228,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, orderBy, getDocs, serverTimestamp, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, orderBy, limit, getDocs, serverTimestamp, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // --- INSTRUCCIONES: PEGA AQUÍ TU OBJETO firebaseConfig DE TU PROYECTO DE FIREBASE ---
         const firebaseConfig = {
@@ -467,7 +467,7 @@
                     // Transacción para obtener el último número de turno y crear uno nuevo de forma atómica
                     await runTransaction(db, async (transaction) => {
                         const lastTurnQuery = query(turnsCollection, orderBy('number', 'desc'), limit(1));
-                        const lastTurnSnapshot = await getDocs(lastTurnQuery);
+                        const lastTurnSnapshot = await transaction.get(lastTurnQuery);
                         
                         if (!lastTurnSnapshot.empty) {
                             const lastTurnDoc = lastTurnSnapshot.docs[0];
@@ -610,20 +610,19 @@
                     // El token de autenticación solo se provee en este entorno, no en GitHub
                     if (initialAuthToken) {
                         await signInWithCustomToken(auth, initialAuthToken);
-                    } else {
-                        await signInAnonymously(auth);
                     }
                 } catch (error) {
                     console.error("Error de autenticación:", error);
-                    showModal('Error de autenticación', 'No se pudo iniciar sesión. Por favor, recarga la página.', false);
+                    showModal('Error de autenticación con token', 'No se pudo iniciar sesión. Intentando de nuevo de forma anónima.', false);
+                    try {
+                        await signInAnonymously(auth);
+                    } catch (anonymousError) {
+                        console.error("Error de autenticación anónima:", anonymousError);
+                        showModal('Error de autenticación', 'No se pudo iniciar sesión. Por favor, recarga la página.', false);
+                    }
                 }
             }
         };
     </script>
 </body>
 </html>
-
-
-</html>
-
-
