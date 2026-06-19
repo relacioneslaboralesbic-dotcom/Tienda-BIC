@@ -249,7 +249,7 @@
             }
         }
 
-        const q = query(turnsCollection, orderBy("number", "desc"), limit(2000));
+        const q = query(turnsCollection, orderBy("number", "desc"), limit(300));
         onSnapshot(q, (querySnapshot) => {
             allTurns = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             updateAllViews(allTurns);
